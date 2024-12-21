@@ -3,13 +3,13 @@
     <v-card
       class="pa-4"
       elevation="4"
-      :style="{ height: '100%', maxWidth: isLaptop ? '600px' : '400px' }"
+      :style="{ height: '100%', maxWidth: cardWidth }"
     >
       <v-card-title class="justify-center text-h5 font-weight-bold">
         Email Send
       </v-card-title>
       <v-card-text class="d-flex flex-column">
-        <v-form @submit.prevent="submitForm" class="flex-grow-1">
+        <v-form @submit.prevent="submitForm" class="flex-grow-1" ref="emailForm">
           <v-text-field
             v-model="formData.toEmail"
             label="To Email"
@@ -34,6 +34,7 @@
           ></v-textarea>
           <v-card-actions class="justify-center mt-4">
             <v-btn
+              :disabled="!isFormValid"
               color="primary"
               variant="elevated"
               class="gradient-btn"
@@ -49,17 +50,28 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 
 export default {
   name: "EmailForm",
   setup() {
     const isLaptop = ref(false);
+    const isTablet = ref(false);
 
     const formData = reactive({
       toEmail: "",
       subject: "",
       message: "",
+    });
+
+    const cardWidth = computed(() => {
+      if (isLaptop.value) return "600px";
+      if (isTablet.value) return "500px";
+      return "400px";
+    });
+
+    const isFormValid = computed(() => {
+      return formData.toEmail.trim() && formData.subject.trim() && formData.message.trim();
     });
 
     const resetForm = () => {
@@ -69,10 +81,17 @@ export default {
     };
 
     const updateSize = () => {
-      isLaptop.value = window.innerWidth >= 1024;
+      const width = window.innerWidth;
+      isLaptop.value = width >= 1024;
+      isTablet.value = width >= 768 && width < 1024;
     };
 
     const submitForm = async () => {
+      if (!isFormValid.value) {
+        alert("All fields are required.");
+        return;
+      }
+
       try {
         const response = await fetch("http://localhost:3000/mailer/send", {
           method: "POST",
@@ -103,7 +122,7 @@ export default {
       window.addEventListener("resize", updateSize);
     });
 
-    return { isLaptop, formData, submitForm, resetForm };
+    return { isLaptop, isTablet, cardWidth, formData, isFormValid, submitForm, resetForm };
   },
 };
 </script>
